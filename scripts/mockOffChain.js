@@ -1,20 +1,36 @@
-const { ethers, network } = require("hardhat")
+const { deployments, ethers, getNamedAccounts, network, provider, chainId } = require("hardhat")
 
 async function mockKeepers() {
-    const raffle = await ethers.getContract("Raffle")
+    deployer = (await getNamedAccounts()).deployer
+    // raffle = await ethers.getContractAt("Raffle", "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9", deployer)
+    raffle = await ethers.getContract("Raffle")
+
+    console.log(raffle.address)
+
     const checkData = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(""))
+
+    const isOpen = await raffle.getRaffleState()
+    console.log("getRaffleState : ", isOpen)
+
+    const numOfPlayer = await raffle.getNumberOfPlayers()
+    console.log("getPlayers : ", parseInt(numOfPlayer._hex))
+
+    const interval = await raffle.getInterval()
+    console.log("interval : ", parseInt(interval._hex))
+
+    // const balance = await raffle.getBalance(raffle.address)
+    // console.log("balance : ", parseInt(balance._hex))
+
     const { upkeepNeeded } = await raffle.callStatic.checkUpkeep(checkData)
-    // const upkeepNeeded = true
+    console.log(upkeepNeeded)
     if (upkeepNeeded) {
         const tx = await raffle.performUpkeep(checkData)
         const txReceipt = await tx.wait(1)
         const requestId = txReceipt.events[1].args.requestId
-        console.log(`Performed upkeep with RequestId: ${requestId} chainId : ${network.config.chainId}`)
-        // if (network.config.chainId == 31337) {
-
+        console.log(`Performed upkeep with RequestId: ${requestId}`)
         await mockVrf(requestId, raffle)
     } else {
-        console.log("No upkeep needed!")
+        console.log("No upkeep needed")
     }
 }
 
